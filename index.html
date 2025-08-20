@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Spectrum Egg Kong</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="ui">
+    <div id="title">SPECTRUM EGG KONG</div>
+    <div id="hint">Carrega em <b>Start</b> (ou tecla qualquer) para começar.<br/>PC: Setas + Espaço · Mobile: botões</div>
+    <button id="startBtn">Start</button>
+  </div>
+
+  <canvas id="gameCanvas" width="256" height="192"></canvas>
+
+  <div id="controls">
+    <button class="btn" id="btnLeft">◀</button>
+    <button class="btn" id="btnRight">▶</button>
+    <button class="btn" id="btnUp">▲</button>
+    <button class="btn" id="btnDown">▼</button>
+    <button class="btn" id="btnJump">⤒</button>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
