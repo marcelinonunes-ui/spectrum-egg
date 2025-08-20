@@ -86,62 +86,150 @@
     win(){ [0,4,7,12].forEach((semi,i)=>setTimeout(()=>beep(440*Math.pow(2,semi/12),0.08,'square',0.13), i*90)); }
   };
 
-  // ===== Sprites (nítidos, com outline) =====
-  const SPRITES = {};
-  function spriteFromPattern(palette, pattern) {
-    const h = pattern.length, w = pattern[0].length;
-    const off = document.createElement('canvas'); off.width = w; off.height = h;
-    const d = off.getContext('2d'); d.imageSmoothingEnabled = false;
-    const imgData = d.createImageData(w, h);
-    const putPixel = (x,y,rgba)=>{ const i=(y*w+x)*4; imgData.data[i]=rgba[0]; imgData.data[i+1]=rgba[1]; imgData.data[i+2]=rgba[2]; imgData.data[i+3]=rgba[3]; };
-    for(let y=0;y<h;y++) for(let x=0;x<w;x++){ const k = pattern[y][x]; putPixel(x,y, palette[k] || [0,0,0,0]); }
-    d.putImageData(imgData,0,0); const img = new Image(); img.src = off.toDataURL(); return img;
-  }
-  const P = {
-    K:[0,0,0,255], W:[235,235,235,255], Y:[215,215,0,255], y:[160,160,0,255],
-    B:[0,0,215,255], b:[0,0,160,255], R:[215,0,0,255], r:[160,0,0,255],
-    G:[0,215,0,255], g:[0,160,0,255], T:[0,0,0,0]
-  };
+  // ===== Sprites (estilo Chuckie Egg — arte original) =====
+const SPRITES = {};
 
-  // Agricultor (16x16) 2 frames: chapéu, rosto, camisa, jardineiras (sombras y/b)
-  const FARMER1 = [
-  "TTTTKYYYKKTTTTTT","TTTKYYYYYYKTTTTT","TTKYYYYyyyyKTTTT","TTKYWYWYWYYKTTTT",
-  "TTTKYYYYYYKTTTTT","TTTTKGGgKTTTTTTT","TTTTKGBBGKTTTTTT","TTTTKGBBGKTTTTTT",
-  "TTTTKGBBGKTTTTTT","TTTTKBBBBKTTTTTT","TTTTKBBBBKTTTTTT","TTTTKBBBBKTTTTTT",
-  "TTTTKBTTBKTTTTTT","TTTTKBTTBKTTTTTT","TTTTRKTTTKRTTTTT","TTTTTTTTTTTTTTTT"];
-  const FARMER2 = [
-  "TTTTKYYYKKTTTTTT","TTTKYYYYYYKTTTTT","TTKYYYYyyyyKTTTT","TTKYWKWYWYYKTTTT",
-  "TTTKYYYYYYKTTTTT","TTTTKGGgKTTTTTTT","TTTTKGBBGKTTTTTT","TTTTKGBBGKTTTTTT",
-  "TTTTKGBBGKTTTTTT","TTTTKBBBBKTTTTTT","TTTTKBBBBKTTTTTT","TTTTKBBBBKTTTTTT",
-  "TTTTKBTBBKTTTTTT","TTTTKBTBBKTTTTTT","TTTTRKTTTKRTTTTT","TTTTTTTTTTTTTTTT"];
-  function buildFarmer(p){ return spriteFromPattern({K:P.K,W:P.W,Y:P.Y,y:P.y,G:P.G,g:P.g,B:P.B,b:P.b,R:P.R,T:P.T}, p); }
-  SPRITES.player = [buildFarmer(FARMER1), buildFarmer(FARMER2)];
+// utilitário p/ gerar sprite por padrão de caracteres
+function spriteFromPattern(palette, pattern) {
+  const h = pattern.length, w = pattern[0].length;
+  const off = document.createElement('canvas'); off.width = w; off.height = h;
+  const d = off.getContext('2d'); d.imageSmoothingEnabled = false;
+  const imgData = d.createImageData(w, h);
+  const put = (x,y,rgba)=>{ const i=(y*w+x)*4; imgData.data[i]=rgba[0]; imgData.data[i+1]=rgba[1]; imgData.data[i+2]=rgba[2]; imgData.data[i+3]=rgba[3]; };
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){ put(x,y, palette[ pattern[y][x] ] || [0,0,0,0]); }
+  d.putImageData(imgData,0,0);
+  const img = new Image(); img.src = off.toDataURL(); return img;
+}
 
-  // Gorila (16x16) 2 frames: piscar + bater no peito (sombra b, peito y/y)
-  const KONG_OPEN = [
-  "TTTTTTKKKKTTTTTT","TTTTTKBbbbKKTTTT","TTTTKBBBBBBKTTTT","TTTKBBBWyBBBKTTT",
-  "TTKBBBBYYBBBBKTT","TTKBBBYYYYBBBKTT","TTKBBBBYYYYBBKTT","TTKBBBBYYYYBBKTT",
-  "TTKBBBBYYYYBBKTT","TTKBBBBBBBBBBKTT","TTTKBBBBBBBBKTTT","TTTTKBBBBBBKTTTT",
-  "TTTTKBBBBBBKTTTT","TTTTKBBKKBBKTTTT","TTTTKBTTTTBKTTTT","TTTTTTKKKKTTTTTT"];
-  const KONG_BLINK = KONG_OPEN.map((row,y)=> y===3 ? row.replace("W","Y") : row);
-  function buildKong(p){ return spriteFromPattern({K:P.K,B:P.B,b:P.b,Y:P.Y,y:P.y,W:P.W,T:P.T}, p); }
-  SPRITES.kong = [buildKong(KONG_OPEN), buildKong(KONG_BLINK)];
+// Paleta ZX (chapada) com transparente
+const P = {
+  K:[0,0,0,255],   // preto (contorno)
+  W:[235,235,235,255], // branco (olhos/ovos)
+  Y:[215,215,0,255],   // amarelo (camisa/peito)
+  B:[0,0,215,255],     // azul (calças)
+  R:[215,0,0,255],     // vermelho (banda/ botas)
+  G:[0,215,0,255],     // verde (suspensórios)
+  T:[0,0,0,0]          // transparente
+};
 
-  // Barril com banda e sombreamento
-  const BARREL = [
-  "TTTTTTTTTTTTTTTT","TTTTTTKRRRRKTTTT","TTTTKRrBBBBRRKTT","TTTKRBBBBBBBBRKT",
-  "TTTKRBBBBBBBBRKT","TTTKRBBRRRBBBRTT","TTTKRBBBBBBBBRKT","TTTKRBBBBBBBBRKT",
-  "TTTKRBBRRRBBBRTT","TTTKRBBBBBBBBRKT","TTTKRBBBBBBBBRKT","TTTTKRRBBBBRRKTT",
-  "TTTTTTKRRRRKTTTT","TTTTTTTTTTTTTTTT","TTTTTTTTTTTTTTTT","TTTTTTTTTTTTTTTT"];
-  SPRITES.barrel = spriteFromPattern({K:P.K,R:P.R,r:P.r,B:P.B,T:P.T}, BARREL);
+/* AGRICULTOR — 16×16, 2 frames
+   “Harry-like”: boina (“cap”) baixa, cara simples, tronco estreito, suspensórios e pernas finas.
+   Cores chapadas, sem shading (para ficar mais próximo do look original).
+*/
+const HARRY_F1 = [
+"TTTTKKYKKTTTTTTT",
+"TTTKKYYYKKTTTTTT",
+"TTTKYYYYYKT TTTT".replace(' ','T'),
+"TTTKYWWWYKT TTTT".replace(' ','T'), // olhos
+"TTTKYYYYYKT TTTT".replace(' ','T'),
+"TTTTKGGGKTTTTTTT",  // suspensórios (G)
+"TTTTKGBBGKTTTTTT",  // tronco estreito
+"TTTTKGBBGKTTTTTT",
+"TTTTKGBBGKTTTTTT",
+"TTTTKBBBBKTTTTTT",  // calças azuis
+"TTTTKBBBBKTTTTTT",
+"TTTTKBBBBKTTTTTT",
+"TTTTKBTTBKTTTTTT",  // pernas finas
+"TTTTKBTTBKTTTTTT",
+"TTTTRKTTTKRTTTTT",  // botas
+"TTTTTTTTTTTTTTTT",
+];
+const HARRY_F2 = [
+"TTTTKKYKKTTTTTTT",
+"TTTKKYYYKKTTTTTT",
+"TTTKYYYYYKT TTTT".replace(' ','T'),
+"TTTKYWWWYKT TTTT".replace(' ','T'),
+"TTTKYYYYYKT TTTT".replace(' ','T'),
+"TTTTKGGGKTTTTTTT",
+"TTTTKGBBGKTTTTTT",
+"TTTTKGBBGKTTTTTT",
+"TTTTKGBBGKTTTTTT",
+"TTTTKBBBBKTTTTTT",
+"TTTTKBBBBKTTTTTT",
+"TTTTKBBBBKTTTTTT",
+"TTTTKBTBBKTTTTTT",  // passo alternado
+"TTTTKBTBBKTTTTTT",
+"TTTTRKTTTKRTTTTT",
+"TTTTTTTTTTTTTTTT",
+];
+function buildHarry(p){ return spriteFromPattern({K:P.K,W:P.W,Y:P.Y,G:P.G,B:P.B,R:P.R,T:P.T}, p); }
+SPRITES.player = [ buildHarry(HARRY_F1), buildHarry(HARRY_F2) ];
 
-  // Ovo com brilho
-  const EGG = [
-  "TTTTTTTTTTTTTTTT","TTTTTTTWWWTTTTTT","TTTTTTWWWWWTTTTT","TTTTTWWWWWWWTTTT",
-  "TTTTTWWWWWWWTTTT","TTTTTWWWWWWWTTTT","TTTTTWWWWWWWTTTT","TTTTTWWWWWWWTTTT",
-  "TTTTTWWWWWWWTTTT","TTTTTTWWWWWTTTTT","TTTTTTTWWWTTTTTT","TTTTTTTTTTTTTTTT",
-  "TTTTTTTTTTTTTTTT","TTTTTTTTTTTTTTTT","TTTTTTTTTTTTTTTT","TTTTTTTTTTTTTTTT"];
-  SPRITES.egg = spriteFromPattern({W:P.W,T:P.T}, EGG);
+/* GORILA — 16×16, 2 frames (piscar)
+   Mais “flat”, com peito amarelo simples e braços largos, para combinar visualmente.
+*/
+const KONG_OPEN = [
+"TTTTTTKKKKTTTTTT",
+"TTTTTKBBBBKKTTTT",
+"TTTTKBBBBBBKTTTT",
+"TTTKBBBWWBBBKTTT", // olhos brancos
+"TTKBBBBYYBBBBKTT",
+"TTKBBBYYYYBBBKTT",
+"TTKBBBBYYYYBBKTT",
+"TTKBBBBYYYYBBKTT",
+"TTKBBBBYYYYBBKTT",
+"TTKBBBBBBBBBBKTT",
+"TTTKBBBBBBBBKTTT",
+"TTTTKBBBBBBKTTTT",
+"TTTTKBBBBBBKTTTT",
+"TTTTKBBKKBBKTTTT",
+"TTTTKBTTTTBKTTTT",
+"TTTTTTKKKKTTTTTT",
+];
+const KONG_BLINK = KONG_OPEN.map((row,y)=> y===3 ? row.replace(/W/g,"Y") : row);
+function buildKong(p){ return spriteFromPattern({K:P.K,B:P.B,Y:P.Y,W:P.W,T:P.T}, p); }
+SPRITES.kong = [ buildKong(KONG_OPEN), buildKong(KONG_BLINK) ];
+
+/* OVO — oval chapado com brilho simples */
+const EGG = [
+"TTTTTTTTTTTTTTTT",
+"TTTTTTTWWWTTTTTT",
+"TTTTTTWWWWWTTTTT",
+"TTTTTWWWWWWWTTTT",
+"TTTTTWWWWWWWTTTT",
+"TTTTTWWWWWWWTTTT",
+"TTTTTWWWWWWWTTTT",
+"TTTTTWWWWWWWTTTT",
+"TTTTTWWWWWWWTTTT",
+"TTTTTTWWWWWTTTTT",
+"TTTTTTTWWWTTTTTT",
+"TTTTTTTTTTTTTTTT",
+"TTTTTTTTTTTTTTTT",
+"TTTTTTTTTTTTTTTT",
+"TTTTTTTTTTTTTTTT",
+"TTTTTTTTTTTTTTTT",
+];
+SPRITES.egg = spriteFromPattern({W:P.W,T:P.T}, EGG);
+
+/* BARRIL — simples, com banda vermelha */
+const BARREL = [
+"TTTTTTTTTTTTTTTT",
+"TTTTTTKRRRRKTTTT",
+"TTTTKRRBBBBRRKTT",
+"TTTKRBBBBBBBBRKT",
+"TTTKRBBBBBBBBRKT",
+"TTTKRBBRRRBBBRTT",
+"TTTKRBBBBBBBBRKT",
+"TTTKRBBBBBBBBRKT",
+"TTTKRBBRRRBBBRTT",
+"TTTKRBBBBBBBBRKT",
+"TTTKRBBBBBBBBRKT",
+"TTTTKRRBBBBRRKTT",
+"TTTTTTKRRRRKTTTT",
+"TTTTTTTTTTTTTTTT",
+"TTTTTTTTTTTTTTTT",
+"TTTTTTTTTTTTTTTT",
+];
+SPRITES.barrel = spriteFromPattern({K:P.K,R:P.R,B:P.B,T:P.T}, BARREL);
+
+/* ESCADA — degraus de 2 px como no Spectrum */
+const LADDER = Array.from({length:16},(_,y)=>{
+  const arr = "TTTTTTTTTTTTTTTT".split("");
+  arr[5]="Y"; arr[10]="Y";
+  if (y%3===1) for(let x=5;x<=10;x++) arr[x]="Y";
+  return arr.join("");
+});
+SPRITES.ladder = spriteFromPattern({Y:P.Y,T:P.T}, LADDER);
 
   // Escada amarela
   const LADDER = Array.from({length:16},(_,y)=>{ const arr="TTTTTTTTTTTTTTTT".split(""); arr[5]="Y"; arr[10]="Y"; if(y%3===1) for(let x=5;x<=10;x++) arr[x]="Y"; return arr.join(""); });
