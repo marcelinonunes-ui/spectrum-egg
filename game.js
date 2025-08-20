@@ -122,7 +122,185 @@
     {x:1,y:9,h:2},{x:13,y:9,h:2},
   ];
   ladders.forEach(L=>{ for(let i=0;i<L.h;i++){ if(level[L.y-i] && level[L.y-i][L.x]!==undefined) level[L.y-i][L.x]=2; } });
+// Sprites desenhados por código (sem imagens externas) — versão melhorada
+const SPRITES = {};
 
+// utilitário: cria sprite a partir de “padrão” (matriz de chars)
+function spriteFromPattern(palette, pattern) {
+  const h = pattern.length;
+  const w = pattern[0].length;
+  const off = document.createElement('canvas');
+  off.width = w; off.height = h;
+  const d = off.getContext('2d');
+  const imgData = d.createImageData(w, h);
+  const putPixel = (x,y,rgba)=>{
+    const i = (y*w+x)*4;
+    imgData.data[i+0]=rgba[0];
+    imgData.data[i+1]=rgba[1];
+    imgData.data[i+2]=rgba[2];
+    imgData.data[i+3]=rgba[3];
+  };
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const k = pattern[y][x];
+      const col = palette[k] || [0,0,0,0];
+      putPixel(x,y,col);
+    }
+  }
+  d.putImageData(imgData,0,0);
+  const img = new Image();
+  img.src = off.toDataURL();
+  return img;
+}
+
+// paleta (RGBA) com letras-chave
+const P = {
+  K: [0,0,0,255],            // preto (outline)
+  W: [215,215,215,255],      // branco (rosto/olhos)
+  Y: [215,215,0,255],        // amarelo (chapéu/peito)
+  B: [0,0,215,255],          // azul (jardineiras/corpo gorila escuro)
+  R: [215,0,0,255],          // vermelho (botas/banda barril)
+  G: [0,215,0,255],          // verde (camisa)
+  M: [215,0,215,255],        // magenta (realce)
+  C: [0,215,215,255],        // ciano (brilho)
+  T: [0,0,0,0]               // transparente
+};
+
+// ===== Agricultor (2 frames) =====
+// 16×16 — chapéu (Y), rosto (W), camisa (G), jardineiras (B), botas (R)
+const FARMER_FRAME_1 = [
+"TTTTKYYYKKTTTTTT",
+"TTTKYYYYYYKTTTTT",
+"TTKYYYYYYYYKTTTT",
+"TTKYWYWYWYYKTTTT", // olhos boca simples
+"TTTKYYYYYYKTTTTT",
+"TTTTKGGGKTTTTTTT", // gola
+"TTTTKGBBGKTTTTTT", // suspensórios
+"TTTTKGBBGKTTTTTT",
+"TTTTKGBBGKTTTTTT",
+"TTTTKBBBBKTTTTTT", // jardineiras
+"TTTTKBBBBKTTTTTT",
+"TTTTKBBBBKTTTTTT",
+"TTTTKBTTBKTTTTTT", // pernas (passo 1)
+"TTTTKBTTBKTTTTTT",
+"TTTTRKTTTKRTTTTT", // botas
+"TTTTTTTTTTTTTTTT",
+];
+
+const FARMER_FRAME_2 = [
+"TTTTKYYYKKTTTTTT",
+"TTTKYYYYYYKTTTTT",
+"TTKYYYYYYYYKTTTT",
+"TTKYWKWYWYYKTTTT",
+"TTTKYYYYYYKTTTTT",
+"TTTTKGGGKTTTTTTT",
+"TTTTKGBBGKTTTTTT",
+"TTTTKGBBGKTTTTTT",
+"TTTTKGBBGKTTTTTT",
+"TTTTKBBBBKTTTTTT",
+"TTTTKBBBBKTTTTTT",
+"TTTTKBBBBKTTTTTT",
+"TTTTKBTBBKTTTTTT", // pernas (passo 2)
+"TTTTKBTBBKTTTTTT",
+"TTTTRKTTTKRTTTTT",
+"TTTTTTTTTTTTTTTT",
+];
+
+// Remapeia cores por letra
+function buildFarmer(pattern){
+  const pal = {K:P.K, Y:P.Y, W:P.W, G:P.G, B:P.B, R:P.R, T:P.T};
+  return spriteFromPattern(pal, pattern);
+}
+SPRITES.player = [
+  buildFarmer(FARMER_FRAME_1),
+  buildFarmer(FARMER_FRAME_2)
+];
+
+// ===== Gorila (Kong) 2 frames (olho aberto/fechado) =====
+// Corpo azul escuro (B), peito amarelo (Y), rosto branco (W), outline preto (K)
+const KONG_OPEN = [
+"TTTTTTKKKKTTTTTT",
+"TTTTTKBBBBKKTTTT",
+"TTTTKBBBBBBKTTTT",
+"TTTKBBBWYBBBKTTT", // olhos (W)
+"TTKBBBBYYBBBBKTT", // testa/face
+"TTKBBBYYYYBBBKTT", // face + morro
+"TTKBBBBYYYYBBKTT",
+"TTKBBBBYYYYBBKTT",
+"TTKBBBBYYYYBBKTT", // peito
+"TTKBBBBBBBBBBKTT",
+"TTTKBBBBBBBBKTTT",
+"TTTTKBBBBBBKTTTT",
+"TTTTKBBBBBBKTTTT",
+"TTTTKBBKKBBKTTTT", // braços largos
+"TTTTKBTTTTBKTTTT",
+"TTTTTTKKKKTTTTTT",
+];
+const KONG_CLOSED = KONG_OPEN.map((row,y)=>
+  y===3 ? row.replace("W","Y") : row // piscar (substitui olho branco por amarelo)
+);
+
+function buildKong(pattern){
+  const pal = {K:P.K, B:P.B, Y:P.Y, W:P.W, T:P.T};
+  return spriteFromPattern(pal, pattern);
+}
+SPRITES.kong = [
+  buildKong(KONG_OPEN),
+  buildKong(KONG_CLOSED)
+];
+
+// ===== Barril (mais detalhado) =====
+const BARREL = [
+"TTTTTTTTTTTTTTTT",
+"TTTTTTKRRRRKTTTT",
+"TTTTKRRBBBBRRKTT",
+"TTTKRBBBBBBBBRKT",
+"TTTKRBBBBBBBBRKT",
+"TTTKRBBRRRBBBRTT",
+"TTTKRBBBBBBBBRKT",
+"TTTKRBBBBBBBBRKT",
+"TTTKRBBRRRBBBRTT",
+"TTTKRBBBBBBBBRKT",
+"TTTKRBBBBBBBBRKT",
+"TTTTKRRBBBBRRKTT",
+"TTTTTTKRRRRKTTTT",
+"TTTTTTTTTTTTTTTT",
+"TTTTTTTTTTTTTTTT",
+"TTTTTTTTTTTTTTTT",
+];
+SPRITES.barrel = spriteFromPattern({K:P.K,R:P.R,B:P.B,T:P.T}, BARREL);
+
+// ===== Ovo (oval com brilho) =====
+const EGG = [
+"TTTTTTTTTTTTTTTT",
+"TTTTTTTWWWTTTTTT",
+"TTTTTTWWWWWTTTTT",
+"TTTTTWWWWWWWTTTT",
+"TTTTTWWWWWWWTTTT",
+"TTTTTWWWWWWWTTTT",
+"TTTTTWWWWWWWTTTT",
+"TTTTTWWWWWWWTTTT",
+"TTTTTWWWWWWWTTTT",
+"TTTTTTWWWWWTTTTT",
+"TTTTTTTWWWTTTTTT",
+"TTTTTTTTTTTTTTTT",
+"TTTTTTTTTTTTTTTT",
+"TTTTTTTTTTTTTTTT",
+"TTTTTTTTTTTTTTTT",
+"TTTTTTTTTTTTTTTT",
+];
+SPRITES.egg = spriteFromPattern({W:P.W,T:P.T}, EGG);
+
+// ===== Escada (amarela) =====
+const LADDER = Array.from({length:16},(_,y)=>{
+  let row = "TTTTTTTTTTTTTTTT".split("");
+  // montantes
+  row[5]="Y"; row[10]="Y";
+  // degraus
+  if (y%3===1) for(let x=5;x<=10;x++) row[x]="Y";
+  return row.join("");
+});
+SPRITES.ladder = spriteFromPattern({Y:P.Y,T:P.T}, LADDER);
   // Sprites desenhados por código (sem imagens externas)
   const SPRITES = {};
   function makeSprite(w,h,draw){
@@ -337,8 +515,9 @@
       }
     }
 
-    // Boss
-    ctx.drawImage(SPRITES.chicken, chicken.x-8, chicken.y-8);
+    // Gorila (Kong) com piscar de olhos lento
+const kongFrame = (Math.floor(frame/30) % 2); // pisca ~a cada meio segundo
+ctx.drawImage(SPRITES.kong[kongFrame], chicken.x-8, chicken.y-8);
 
     // Barris
     barrels.forEach(b => ctx.drawImage(SPRITES.barrel, b.x-5, b.y-5));
@@ -346,8 +525,10 @@
     // Ovos
     eggs.forEach(e => ctx.drawImage(SPRITES.egg, e.x-4, e.y-6));
 
-    // Jogador
-    ctx.drawImage(SPRITES.player, Math.round(player.x), Math.round(player.y));
+    // Jogador (agricultor) com passo alternado quando se move ou sobe
+const moving = Math.abs(player.dx) > 0.1 || player.climbing;
+const playerFrame = moving ? (Math.floor(frame/8) % 2) : 0;
+ctx.drawImage(SPRITES.player[playerFrame], Math.round(player.x), Math.round(player.y));
 
     // HUD
     ctx.fillStyle = ZX.BRIGHT_WHITE; ctx.fillRect(0,0,WIDTH,8);
