@@ -10,7 +10,7 @@
 
   // ===== Config & Estado =====
   const GRAV = 0.35, JUMP_V = -6.2, MOVE_V = 2.0;
-  let running = false, frame = 0, gameState = 'MENU'; // MENU | PLAY | LEVEL_INTRO | WIN | GAMEOVER
+  let running = false, frame = 0, gameState = 'MENU'; // MENU | PLAY | WIN | GAMEOVER
   let soundOn = true;
   let currentLevel = 0; // 0..9 (10 níveis)
 
@@ -86,307 +86,128 @@
     win(){ [0,4,7,12].forEach((semi,i)=>setTimeout(()=>beep(440*Math.pow(2,semi/12),0.08,'square',0.13), i*90)); }
   };
 
-  // ===== Sprites (estilo Chuckie Egg — arte original) =====
-const SPRITES = {};
+  // ===== Sprites (estilo Chuckie Egg — arte original incluída aqui) =====
+  const SPRITES = {};
+  function spriteFromPattern(palette, pattern) {
+    const h = pattern.length, w = pattern[0].length;
+    const off = document.createElement('canvas'); off.width = w; off.height = h;
+    const d = off.getContext('2d'); d.imageSmoothingEnabled = false;
+    const imgData = d.createImageData(w, h);
+    const put = (x,y,rgba)=>{ const i=(y*w+x)*4; imgData.data[i]=rgba[0]; imgData.data[i+1]=rgba[1]; imgData.data[i+2]=rgba[2]; imgData.data[i+3]=rgba[3]; };
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++){ put(x,y, palette[ pattern[y][x] ] || [0,0,0,0]); }
+    d.putImageData(imgData,0,0);
+    const img = new Image(); img.src = off.toDataURL(); return img;
+  }
+  const P = {
+    K:[0,0,0,255], W:[235,235,235,255], Y:[215,215,0,255],
+    B:[0,0,215,255], R:[215,0,0,255], G:[0,215,0,255],
+    C:[139,69,19,255], T:[0,0,0,0]
+  };
 
-// utilitário p/ gerar sprite por padrão de caracteres
-function spriteFromPattern(palette, pattern) {
-  const h = pattern.length, w = pattern[0].length;
-  const off = document.createElement('canvas'); off.width = w; off.height = h;
-  const d = off.getContext('2d'); d.imageSmoothingEnabled = false;
-  const imgData = d.createImageData(w, h);
-  const put = (x,y,rgba)=>{ const i=(y*w+x)*4; imgData.data[i]=rgba[0]; imgData.data[i+1]=rgba[1]; imgData.data[i+2]=rgba[2]; imgData.data[i+3]=rgba[3]; };
-  for(let y=0;y<h;y++) for(let x=0;x<w;x++){ put(x,y, palette[ pattern[y][x] ] || [0,0,0,0]); }
-  d.putImageData(imgData,0,0);
-  const img = new Image(); img.src = off.toDataURL(); return img;
-}
+  // Agricultor (16x16) 2 frames (flat)
+  const HARRY_F1 = [
+  "TTTTKKYKKTTTTTTT","TTTKKYYYKKTTTTTT","TTTKYYYYYKT TTTT".replace(' ','T'),"TTTKYWWWYKT TTTT".replace(' ','T'),
+  "TTTKYYYYYKT TTTT".replace(' ','T'),"TTTTKGGGKTTTTTTT","TTTTKGBBGKTTTTTT","TTTTKGBBGKTTTTTT",
+  "TTTTKGBBGKTTTTTT","TTTTKBBBBKTTTTTT","TTTTKBBBBKTTTTTT","TTTTKBBBBKTTTTTT",
+  "TTTTKBTTBKTTTTTT","TTTTKBTTBKTTTTTT","TTTTRKTTTKRTTTTT","TTTTTTTTTTTTTTTT"];
+  const HARRY_F2 = [
+  "TTTTKKYKKTTTTTTT","TTTKKYYYKKTTTTTT","TTTKYYYYYKT TTTT".replace(' ','T'),"TTTKYWWWYKT TTTT".replace(' ','T'),
+  "TTTKYYYYYKT TTTT".replace(' ','T'),"TTTTKGGGKTTTTTTT","TTTTKGBBGKTTTTTT","TTTTKGBBGKTTTTTT",
+  "TTTTKGBBGKTTTTTT","TTTTKBBBBKTTTTTT","TTTTKBBBBKTTTTTT","TTTTKBBBBKTTTTTT",
+  "TTTTKBTBBKTTTTTT","TTTTKBTBBKTTTTTT","TTTTRKTTTKRTTTTT","TTTTTTTTTTTTTTTT"];
+  function buildHarry(p){ return spriteFromPattern({K:P.K,W:P.W,Y:P.Y,G:P.G,B:P.B,R:P.R,T:P.T}, p); }
+  SPRITES.player = [ buildHarry(HARRY_F1), buildHarry(HARRY_F2) ];
 
-// Paleta ZX (chapada) com transparente
-const P = {
-  K:[0,0,0,255],           // preto (contorno)
-  W:[235,235,235,255],     // branco (olhos/ovos)
-  Y:[215,215,0,255],       // amarelo (camisa/peito)
-  B:[0,0,215,255],         // azul (calças)
-  R:[215,0,0,255],         // vermelho (banda/botas)
-  G:[0,215,0,255],         // verde (suspensórios)
-  C:[139,69,19,255],       // castanho (corpo gorila)
-  T:[0,0,0,0]              // transparente
-};
+  // Gorila (castanho) 2 frames (piscar)
+  const KONG_OPEN = [
+  "TTTTTTKKKKTTTTTT","TTTTTKCCCCKKTTTT","TTTTKCCCCCCKTTTT","TTTKCCCWWCCCKTTT",
+  "TTKCCCCYYCCCCKTT","TTKCCCYYYYCCCKTT","TTKCCCCYYYYCCKTT","TTKCCCCYYYYCCKTT",
+  "TTKCCCCYYYYCCKTT","TTKCCCCCCCCCCKTT","TTTKCCCCCCCCKTTT","TTTTKCCCCCCKTTTT",
+  "TTTTKCCCCCCKTTTT","TTTTKCCKKCCKTTTT","TTTTKCTTTTCKTTTT","TTTTTTKKKKTTTTTT"];
+  const KONG_BLINK = KONG_OPEN.map((row,y)=> y===3 ? row.replace(/W/g,"Y") : row);
+  function buildKong(p){ return spriteFromPattern({K:P.K,C:P.C,Y:P.Y,W:P.W,T:P.T}, p); }
+  SPRITES.kong = [ buildKong(KONG_OPEN), buildKong(KONG_BLINK) ];
 
-/* AGRICULTOR — 16×16, 2 frames */
-const HARRY_F1 = [
-"TTTTKKYKKTTTTTTT",
-"TTTKKYYYKKTTTTTT",
-"TTTKYYYYYKT TTTT".replace(' ','T'),
-"TTTKYWWWYKT TTTT".replace(' ','T'),
-"TTTKYYYYYKT TTTT".replace(' ','T'),
-"TTTTKGGGKTTTTTTT",
-"TTTTKGBBGKTTTTTT",
-"TTTTKGBBGKTTTTTT",
-"TTTTKGBBGKTTTTTT",
-"TTTTKBBBBKTTTTTT",
-"TTTTKBBBBKTTTTTT",
-"TTTTKBBBBKTTTTTT",
-"TTTTKBTTBKTTTTTT",
-"TTTTKBTTBKTTTTTT",
-"TTTTRKTTTKRTTTTT",
-"TTTTTTTTTTTTTTTT",
-];
-const HARRY_F2 = [
-"TTTTKKYKKTTTTTTT",
-"TTTKKYYYKKTTTTTT",
-"TTTKYYYYYKT TTTT".replace(' ','T'),
-"TTTKYWWWYKT TTTT".replace(' ','T'),
-"TTTKYYYYYKT TTTT".replace(' ','T'),
-"TTTTKGGGKTTTTTTT",
-"TTTTKGBBGKTTTTTT",
-"TTTTKGBBGKTTTTTT",
-"TTTTKGBBGKTTTTTT",
-"TTTTKBBBBKTTTTTT",
-"TTTTKBBBBKTTTTTT",
-"TTTTKBBBBKTTTTTT",
-"TTTTKBTBBKTTTTTT",
-"TTTTKBTBBKTTTTTT",
-"TTTTRKTTTKRTTTTT",
-"TTTTTTTTTTTTTTTT",
-];
-function buildHarry(p){ return spriteFromPattern({K:P.K,W:P.W,Y:P.Y,G:P.G,B:P.B,R:P.R,T:P.T}, p); }
-SPRITES.player = [ buildHarry(HARRY_F1), buildHarry(HARRY_F2) ];
+  // Ovo
+  const EGG = [
+  "TTTTTTTTTTTTTTTT","TTTTTTTWWWTTTTTT","TTTTTTWWWWWTTTTT","TTTTTWWWWWWWTTTT",
+  "TTTTTWWWWWWWTTTT","TTTTTWWWWWWWTTTT","TTTTTWWWWWWWTTTT","TTTTTWWWWWWWTTTT",
+  "TTTTTWWWWWWWTTTT","TTTTTTWWWWWTTTTT","TTTTTTTWWWTTTTTT","TTTTTTTTTTTTTTTT",
+  "TTTTTTTTTTTTTTTT","TTTTTTTTTTTTTTTT","TTTTTTTTTTTTTTTT","TTTTTTTTTTTTTTTT"];
+  SPRITES.egg = spriteFromPattern({W:P.W,T:P.T}, EGG);
 
-/* GORILA — 16×16, 2 frames (piscar), castanho */
-const KONG_OPEN = [
-"TTTTTTKKKKTTTTTT",
-"TTTTTKCCCCKKTTTT",
-"TTTTKCCCCCCKTTTT",
-"TTTKCCCWWCCCKTTT", // olhos brancos
-"TTKCCCCYYCCCCKTT",
-"TTKCCCYYYYCCCKTT",
-"TTKCCCCYYYYCCKTT",
-"TTKCCCCYYYYCCKTT",
-"TTKCCCCYYYYCCKTT",
-"TTKCCCCCCCCCCKTT",
-"TTTKCCCCCCCCKTTT",
-"TTTTKCCCCCCKTTTT",
-"TTTTKCCCCCCKTTTT",
-"TTTTKCCKKCCKTTTT",
-"TTTTKCTTTTCKTTTT",
-"TTTTTTKKKKTTTTTT",
-];
-const KONG_BLINK = KONG_OPEN.map((row,y)=> y===3 ? row.replace(/W/g,"Y") : row);
-function buildKong(p){ return spriteFromPattern({K:P.K,C:P.C,Y:P.Y,W:P.W,T:P.T}, p); }
-SPRITES.kong = [ buildKong(KONG_OPEN), buildKong(KONG_BLINK) ];
+  // Barril
+  const BARREL = [
+  "TTTTTTTTTTTTTTTT","TTTTTTKRRRRKTTTT","TTTTKRRBBBBRRKTT","TTTKRBBBBBBBBRKT",
+  "TTTKRBBBBBBBBRKT","TTTKRBBRRRBBBRTT","TTTKRBBBBBBBBRKT","TTTKRBBBBBBBBRKT",
+  "TTTKRBBRRRBBBRTT","TTTKRBBBBBBBBRKT","TTTKRBBBBBBBBRKT","TTTTKRRBBBBRRKTT",
+  "TTTTTTKRRRRKTTTT","TTTTTTTTTTTTTTTT","TTTTTTTTTTTTTTTT","TTTTTTTTTTTTTTTT"];
+  SPRITES.barrel = spriteFromPattern({K:P.K,R:P.R,B:P.B,T:P.T}, BARREL);
 
-/* OVO — oval chapado com brilho */
-const EGG = [
-"TTTTTTTTTTTTTTTT",
-"TTTTTTTWWWTTTTTT",
-"TTTTTTWWWWWTTTTT",
-"TTTTTWWWWWWWTTTT",
-"TTTTTWWWWWWWTTTT",
-"TTTTTWWWWWWWTTTT",
-"TTTTTWWWWWWWTTTT",
-"TTTTTWWWWWWWTTTT",
-"TTTTTWWWWWWWTTTT",
-"TTTTTTWWWWWTTTTT",
-"TTTTTTTWWWTTTTTT",
-"TTTTTTTTTTTTTTTT",
-"TTTTTTTTTTTTTTTT",
-"TTTTTTTTTTTTTTTT",
-"TTTTTTTTTTTTTTTT",
-"TTTTTTTTTTTTTTTT",
-];
-SPRITES.egg = spriteFromPattern({W:P.W,T:P.T}, EGG);
-
-/* BARRIL — com banda vermelha */
-const BARREL = [
-"TTTTTTTTTTTTTTTT",
-"TTTTTTKRRRRKTTTT",
-"TTTTKRRBBBBRRKTT",
-"TTTKRBBBBBBBBRKT",
-"TTTKRBBBBBBBBRKT",
-"TTTKRBBRRRBBBRTT",
-"TTTKRBBBBBBBBRKT",
-"TTTKRBBBBBBBBRKT",
-"TTTKRBBRRRBBBRTT",
-"TTTKRBBBBBBBBRKT",
-"TTTKRBBBBBBBBRKT",
-"TTTTKRRBBBBRRKTT",
-"TTTTTTKRRRRKTTTT",
-"TTTTTTTTTTTTTTTT",
-"TTTTTTTTTTTTTTTT",
-"TTTTTTTTTTTTTTTT",
-];
-SPRITES.barrel = spriteFromPattern({K:P.K,R:P.R,B:P.B,T:P.T}, BARREL);
-
-/* ESCADA — degraus de 2 px */
-const LADDER = Array.from({length:16},(_,y)=>{
-  const arr = "TTTTTTTTTTTTTTTT".split("");
-  arr[5]="Y"; arr[10]="Y";
-  if (y%3===1) for(let x=5;x<=10;x++) arr[x]="Y";
-  return arr.join("");
-});
-SPRITES.ladder = spriteFromPattern({Y:P.Y,T:P.T}, LADDER);
-
-  // Escada amarela
-  const LADDER = Array.from({length:16},(_,y)=>{ const arr="TTTTTTTTTTTTTTTT".split(""); arr[5]="Y"; arr[10]="Y"; if(y%3===1) for(let x=5;x<=10;x++) arr[x]="Y"; return arr.join(""); });
-  SPRITES.ladder = spriteFromPattern({Y:P.Y,T:P.T}, LADDER);
+  // Escada (apenas UMA definição!)
+  const LADDER_PATTERN = Array.from({length:16},(_,y)=>{
+    const arr = "TTTTTTTTTTTTTTTT".split("");
+    arr[5]="Y"; arr[10]="Y";
+    if (y%3===1) for(let x=5;x<=10;x++) arr[x]="Y";
+    return arr.join("");
+  });
+  SPRITES.ladder = spriteFromPattern({Y:P.Y,T:P.T}, LADDER_PATTERN);
 
   // ===== Níveis (10) =====
-  // Mapa: 0 vazio, 1 sólido, 2 escada. Geramos ovos automaticamente sobre plataformas.
+  // 0 vazio, 1 sólido, 2 escada; escadas são aplicadas à grelha base
   const LEVEL_LAYOUTS = [
-    // 1: introdução
     [
-      "0000000000000000",
-      "0000000000000000",
-      "0000000000000000",
-      "0000111111110000",
-      "0000000000000000",
-      "0111111000001110",
-      "0000000000000000",
-      "0011111111100000",
-      "0000000000000000",
-      "0111110000011110",
-      "0000000000000000",
-      "1111111111111111",
+      "0000000000000000","0000000000000000","0000000000000000","0000111111110000",
+      "0000000000000000","0111111000001110","0000000000000000","0011111111100000",
+      "0000000000000000","0111110000011110","0000000000000000","1111111111111111",
     ],
-    // 2
     [
-      "0000000000000000",
-      "0000000011111000",
-      "0000000000000000",
-      "0011111100000000",
-      "0000000000000000",
-      "0000011111110000",
-      "0000000000000000",
-      "0000000001111100",
-      "0000000000000000",
-      "0111110000011110",
-      "0000000000000000",
-      "1111111111111111",
+      "0000000000000000","0000000011111000","0000000000000000","0011111100000000",
+      "0000000000000000","0000011111110000","0000000000000000","0000000001111100",
+      "0000000000000000","0111110000011110","0000000000000000","1111111111111111",
     ],
-    // 3
     [
-      "0000000000000000",
-      "0000111111000000",
-      "0000000000000000",
-      "0000000011111100",
-      "0000000000000000",
-      "0011111100000000",
-      "0000000000000000",
-      "0000000001111110",
-      "0000000000000000",
-      "0111111000011110",
-      "0000000000000000",
-      "1111111111111111",
+      "0000000000000000","0000111111000000","0000000000000000","0000000011111100",
+      "0000000000000000","0011111100000000","0000000000000000","0000000001111110",
+      "0000000000000000","0111111000011110","0000000000000000","1111111111111111",
     ],
-    // 4
     [
-      "0000000000000000",
-      "0000001111110000",
-      "0000000000000000",
-      "0111110000011110",
-      "0000000000000000",
-      "0000011111000000",
-      "0000000000000000",
-      "0011111000001110",
-      "0000000000000000",
-      "0000000011111100",
-      "0000000000000000",
-      "1111111111111111",
+      "0000000000000000","0000001111110000","0000000000000000","0111110000011110",
+      "0000000000000000","0000011111000000","0000000000000000","0011111000001110",
+      "0000000000000000","0000000011111100","0000000000000000","1111111111111111",
     ],
-    // 5
     [
-      "0000000000000000",
-      "0000001111110000",
-      "0000000000000000",
-      "0001111111111000",
-      "0000000000000000",
-      "0111110000011110",
-      "0000000000000000",
-      "0000111111100000",
-      "0000000000000000",
-      "0111111000011110",
-      "0000000000000000",
-      "1111111111111111",
+      "0000000000000000","0000001111110000","0000000000000000","0001111111111000",
+      "0000000000000000","0111110000011110","0000000000000000","0000111111100000",
+      "0000000000000000","0111111000011110","0000000000000000","1111111111111111",
     ],
-    // 6
     [
-      "0000000000000000",
-      "0000111110000000",
-      "0000000000000000",
-      "0000000001111100",
-      "0000000000000000",
-      "0011111100001110",
-      "0000000000000000",
-      "0111110000011110",
-      "0000000000000000",
-      "0000011111110000",
-      "0000000000000000",
-      "1111111111111111",
+      "0000000000000000","0000111110000000","0000000000000000","0000000001111100",
+      "0000000000000000","0011111100001110","0000000000000000","0111110000011110",
+      "0000000000000000","0000011111110000","0000000000000000","1111111111111111",
     ],
-    // 7
     [
-      "0000000000000000",
-      "0001111100001110",
-      "0000000000000000",
-      "0111110000111110",
-      "0000000000000000",
-      "0000011111110000",
-      "0000000000000000",
-      "0011111000001110",
-      "0000000000000000",
-      "0111110000011110",
-      "0000000000000000",
-      "1111111111111111",
+      "0000000000000000","0001111100001110","0000000000000000","0111110000111110",
+      "0000000000000000","0000011111110000","0000000000000000","0011111000001110",
+      "0000000000000000","0111110000011110","0000000000000000","1111111111111111",
     ],
-    // 8
     [
-      "0000000000000000",
-      "0011111111111100",
-      "0000000000000000",
-      "0000001111110000",
-      "0000000000000000",
-      "0111110000011110",
-      "0000000000000000",
-      "0000011111110000",
-      "0000000000000000",
-      "0011111000001110",
-      "0000000000000000",
-      "1111111111111111",
+      "0000000000000000","0011111111111100","0000000000000000","0000001111110000",
+      "0000000000000000","0111110000011110","0000000000000000","0000011111110000",
+      "0000000000000000","0011111000001110","0000000000000000","1111111111111111",
     ],
-    // 9
     [
-      "0000000000000000",
-      "0000111111110000",
-      "0000000000000000",
-      "0111110001111110",
-      "0000000000000000",
-      "0000011111000000",
-      "0000000000000000",
-      "0011111111001110",
-      "0000000000000000",
-      "0111110000011110",
-      "0000000000000000",
-      "1111111111111111",
+      "0000000000000000","0000111111110000","0000000000000000","0111110001111110",
+      "0000000000000000","0000011111000000","0000000000000000","0011111111001110",
+      "0000000000000000","0111110000011110","0000000000000000","1111111111111111",
     ],
-    // 10 (desafio)
     [
-      "0000000000000000",
-      "0011111111111100",
-      "0000000000000000",
-      "0111110000011110",
-      "0000000000000000",
-      "0000011111110000",
-      "0000000000000000",
-      "0011111111111110",
-      "0000000000000000",
-      "0111110000011110",
-      "0000000000000000",
-      "1111111111111111",
+      "0000000000000000","0011111111111100","0000000000000000","0111110000011110",
+      "0000000000000000","0000011111110000","0000000000000000","0011111111111110",
+      "0000000000000000","0111110000011110","0000000000000000","1111111111111111",
     ],
   ];
 
-  // Ladders por nível (x,y,h) — suficientes para percorrer as plataformas
   const LEVEL_LADDERS = [
     [{x:3,y:3,h:2},{x:10,y:3,h:2},{x:2,y:5,h:3},{x:14,y:5,h:3},{x:6,y:7,h:2},{x:10,y:7,h:2},{x:1,y:9,h:2},{x:13,y:9,h:2}],
     [{x:2,y:1,h:3},{x:6,y:3,h:3},{x:12,y:5,h:3},{x:4,y:7,h:3},{x:10,y:9,h:2}],
@@ -401,7 +222,7 @@ SPRITES.ladder = spriteFromPattern({Y:P.Y,T:P.T}, LADDER);
   ];
 
   // Dificuldade por nível
-  function levelConfig(idx){ // idx: 0..9
+  function levelConfig(idx){
     const baseSpawn = Math.max(1.15, 3.0 - idx*0.18);
     const speed = 1.4 + idx*0.12;
     const maxBarrels = 3 + Math.floor(idx/2);
@@ -417,7 +238,6 @@ SPRITES.ladder = spriteFromPattern({Y:P.Y,T:P.T}, LADDER);
 
   function parseLevel(idx){
     const rows = LEVEL_LAYOUTS[idx].map(r => r.split('').map(c => +c));
-    // aplicar escadas
     LEVEL_LADDERS[idx].forEach(L=>{
       for(let i=0;i<L.h;i++){
         if(rows[L.y - i] && rows[L.y - i][L.x] !== undefined) rows[L.y - i][L.x] = 2;
@@ -425,18 +245,13 @@ SPRITES.ladder = spriteFromPattern({Y:P.Y,T:P.T}, LADDER);
     });
     return rows;
   }
-
   function placeEggs(rows, idx){
-    // candidatos = topos de plataforma (tile=1 e o de cima !=1)
     const candidates = [];
     for(let y=1;y<mapH;y++){
       for(let x=0;x<mapW;x++){
-        if(rows[y][x]===1 && rows[y-1][x]!==1){
-          candidates.push({x, y});
-        }
+        if(rows[y][x]===1 && rows[y-1][x]!==1) candidates.push({x, y});
       }
     }
-    // escolher N ovos distribuídos
     const { eggsCount } = levelConfig(idx);
     const selected = [];
     if(candidates.length === 0) return selected;
@@ -446,7 +261,6 @@ SPRITES.ladder = spriteFromPattern({Y:P.Y,T:P.T}, LADDER);
     }
     return selected.map(c => ({ x: c.x*TILE + 8, y: c.y*TILE - 8 }));
   }
-
   function loadLevel(idx){
     currentLevel = idx;
     levelGrid = parseLevel(idx);
@@ -458,7 +272,7 @@ SPRITES.ladder = spriteFromPattern({Y:P.Y,T:P.T}, LADDER);
     spawnTimer = baseSpawn;
   }
 
-  // tiles helpers
+  // utilitários tiles
   function solidAt(px,py){
     const tx = Math.floor(px/TILE), ty = Math.floor(py/TILE);
     if(tx<0||ty<0||tx>=mapW||ty>=mapH) return true;
@@ -477,9 +291,7 @@ SPRITES.ladder = spriteFromPattern({Y:P.Y,T:P.T}, LADDER);
     initAudio(); if(audioCtx.state === "suspended") audioCtx.resume();
     if(!running){
       const ui = document.getElementById('ui'); if(ui) ui.style.display='none';
-      running = true;
-      gameState = 'MENU';
-      last = performance.now();
+      running = true; gameState = 'MENU'; last = performance.now();
       requestAnimationFrame(loop);
     }
   }
@@ -491,11 +303,7 @@ SPRITES.ladder = spriteFromPattern({Y:P.Y,T:P.T}, LADDER);
     frame++;
     if(running) requestAnimationFrame(loop);
   }
-
-  function beginLevel(){
-    loadLevel(currentLevel);
-    gameState = 'PLAY';
-  }
+  function beginLevel(){ loadLevel(currentLevel); gameState = 'PLAY'; }
 
   function update(dt){
     ctx.imageSmoothingEnabled = false;
@@ -507,12 +315,10 @@ SPRITES.ladder = spriteFromPattern({Y:P.Y,T:P.T}, LADDER);
       if(keys["ArrowRight"]){ currentLevel = (currentLevel+1)%10; keys["ArrowRight"]=false; }
       if(keys["KeyM"]){ soundOn = !soundOn; keys["KeyM"]=false; }
       if(keys["Enter"]||keys["Space"]){ keys["Enter"]=keys["Space"]=false; beginLevel(); }
-      // atalhos 1..0
       for(let d=1; d<=9; d++){ if(keys["Digit"+d]){ currentLevel = d-1; keys["Digit"+d]=false; } }
       if(keys["Digit0"]){ currentLevel = 9; keys["Digit0"]=false; }
       return;
     }
-
     if(gameState !== 'PLAY') return;
 
     const cfg = levelConfig(currentLevel);
@@ -564,7 +370,7 @@ SPRITES.ladder = spriteFromPattern({Y:P.Y,T:P.T}, LADDER);
       const underSolid = solidAt(b.x+5, b.y+10);
       if(!underSolid) b.dy += GRAV; else b.dy = 0;
       b.y += b.dy;
-      if(b.x < -20){ b.x = WIDTH + 10; b.y = 32 + Math.random()*40; } // wrap à direita
+      if(b.x < -20){ b.x = WIDTH + 10; b.y = 32 + Math.random()*40; }
       if(solidAt(b.x+2, b.y+10)){ const ty = Math.floor((b.y+10)/TILE); b.y = ty*TILE - 10 - 0.01; b.dy = 0; }
     });
 
@@ -586,8 +392,7 @@ SPRITES.ladder = spriteFromPattern({Y:P.Y,T:P.T}, LADDER);
     }
 
     // Kong anim
-    kong.t += dt;
-    kong.x = WIDTH-40 + Math.sin(kong.t*2)*4;
+    kong.t += dt; kong.x = WIDTH-40 + Math.sin(kong.t*2)*4;
   }
 
   // ===== Render =====
@@ -614,12 +419,9 @@ SPRITES.ladder = spriteFromPattern({Y:P.Y,T:P.T}, LADDER);
     ctx.fillStyle = color;
     for(let r=0;r<6;r++) for(let c=0;c<3;c++) if(g[r][c]==='1') ctx.fillRect(x+c+0.5, y+r+0.5, 1,1);
   }
-  function pixText(s, x, y, color, scale=1){
+  function pixText(s, x, y, color){
     s = s.toUpperCase();
-    for(let i=0;i<s.length;i++){
-      pixChar(s[i], x + i*4*scale, y, color);
-    }
-    if(scale>1){ /* simples upscale por repetição */ }
+    for(let i=0;i<s.length;i++) pixChar(s[i], x + i*4, y, color);
   }
 
   function draw(){
@@ -636,11 +438,51 @@ SPRITES.ladder = spriteFromPattern({Y:P.Y,T:P.T}, LADDER);
       ctx.fillStyle = ZX.BRIGHT_WHITE; ctx.fillRect(0,8,WIDTH,10);
       pixText("SPECTRUM", 12, 10, ZX.BLACK);
       pixText("EGG  KONG", 12, 16, ZX.BLACK);
-      // Gorila grande no topo
+      // Gorila grande no topo (truque: desenhar 2x lado a lado para parecer 2x largo)
       const kf = (Math.floor(frame/30)%2);
-      ctx.drawImage(SPRITES.kong[kf], WIDTH-56, 22); // maior, vamos desenhar 2x
+      ctx.drawImage(SPRITES.kong[kf], WIDTH-56, 22);
       ctx.drawImage(SPRITES.kong[kf], WIDTH-56+16, 22);
       // Texto de instruções
       pixText(`LEVEL ${currentLevel+1}/10`, 8, 48, ZX.YELLOW);
       pixText("LEFT/RIGHT: ESCOLHER", 8, 60, ZX.WHITE);
-      pix
+      pixText("ENTER/SPACE: JOGAR", 8, 68, ZX.WHITE);
+      pixText(`M: SOM ${soundOn?"ON":"OFF"}`, 8, 76, soundOn?ZX.GREEN:ZX.RED);
+      return;
+    }
+
+    // Tiles (plataformas e escadas)
+    for(let y=0;y<mapH;y++){
+      for(let x=0;x<mapW;x++){
+        const t = levelGrid[y][x];
+        if(t===1){
+          ctx.fillStyle = ZX.GREEN;
+          ctx.fillRect(x*TILE, y*TILE, TILE, 2);
+          ctx.fillRect(x*TILE, y*TILE+2, TILE, 2);
+        } else if(t===2){
+          ctx.drawImage(SPRITES.ladder, x*TILE, y*TILE);
+        }
+      }
+    }
+
+    // Kong (2 frames a piscar)
+    const kongFrame = (Math.floor(frame/30) % 2);
+    ctx.drawImage(SPRITES.kong[kongFrame], kong.x-8, kong.y-8);
+
+    // Barris
+    barrels.forEach(b => ctx.drawImage(SPRITES.barrel, b.x-5, b.y-5));
+
+    // Ovos
+    eggs.forEach(e => ctx.drawImage(SPRITES.egg, e.x-4, e.y-6));
+
+    // Jogador (2 frames quando em movimento/escada)
+    const moving = Math.abs(player.dx) > 0.1 || player.climbing;
+    const playerFrame = moving ? (Math.floor(frame/8) % 2) : 0;
+    ctx.drawImage(SPRITES.player[playerFrame], Math.round(player.x), Math.round(player.y));
+
+    // HUD
+    ctx.fillStyle = ZX.BRIGHT_WHITE; ctx.fillRect(0,0,WIDTH,8);
+    pixText(`LEVEL ${currentLevel+1}`, 4, 1, ZX.BLACK);
+    pixText('EGGS '+eggs.length, WIDTH-70, 1, ZX.BLACK);
+  }
+
+})();
