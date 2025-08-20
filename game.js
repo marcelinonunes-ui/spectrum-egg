@@ -103,35 +103,33 @@ function spriteFromPattern(palette, pattern) {
 
 // Paleta ZX (chapada) com transparente
 const P = {
-  K:[0,0,0,255],   // preto (contorno)
-  W:[235,235,235,255], // branco (olhos/ovos)
-  Y:[215,215,0,255],   // amarelo (camisa/peito)
-  B:[0,0,215,255],     // azul (calças)
-  R:[215,0,0,255],     // vermelho (banda/ botas)
-  G:[0,215,0,255],     // verde (suspensórios)
-  T:[0,0,0,0]          // transparente
+  K:[0,0,0,255],           // preto (contorno)
+  W:[235,235,235,255],     // branco (olhos/ovos)
+  Y:[215,215,0,255],       // amarelo (camisa/peito)
+  B:[0,0,215,255],         // azul (calças)
+  R:[215,0,0,255],         // vermelho (banda/botas)
+  G:[0,215,0,255],         // verde (suspensórios)
+  C:[139,69,19,255],       // castanho (corpo gorila)
+  T:[0,0,0,0]              // transparente
 };
 
-/* AGRICULTOR — 16×16, 2 frames
-   “Harry-like”: boina (“cap”) baixa, cara simples, tronco estreito, suspensórios e pernas finas.
-   Cores chapadas, sem shading (para ficar mais próximo do look original).
-*/
+/* AGRICULTOR — 16×16, 2 frames */
 const HARRY_F1 = [
 "TTTTKKYKKTTTTTTT",
 "TTTKKYYYKKTTTTTT",
 "TTTKYYYYYKT TTTT".replace(' ','T'),
-"TTTKYWWWYKT TTTT".replace(' ','T'), // olhos
+"TTTKYWWWYKT TTTT".replace(' ','T'),
 "TTTKYYYYYKT TTTT".replace(' ','T'),
-"TTTTKGGGKTTTTTTT",  // suspensórios (G)
-"TTTTKGBBGKTTTTTT",  // tronco estreito
+"TTTTKGGGKTTTTTTT",
 "TTTTKGBBGKTTTTTT",
 "TTTTKGBBGKTTTTTT",
-"TTTTKBBBBKTTTTTT",  // calças azuis
+"TTTTKGBBGKTTTTTT",
 "TTTTKBBBBKTTTTTT",
 "TTTTKBBBBKTTTTTT",
-"TTTTKBTTBKTTTTTT",  // pernas finas
+"TTTTKBBBBKTTTTTT",
 "TTTTKBTTBKTTTTTT",
-"TTTTRKTTTKRTTTTT",  // botas
+"TTTTKBTTBKTTTTTT",
+"TTTTRKTTTKRTTTTT",
 "TTTTTTTTTTTTTTTT",
 ];
 const HARRY_F2 = [
@@ -147,7 +145,7 @@ const HARRY_F2 = [
 "TTTTKBBBBKTTTTTT",
 "TTTTKBBBBKTTTTTT",
 "TTTTKBBBBKTTTTTT",
-"TTTTKBTBBKTTTTTT",  // passo alternado
+"TTTTKBTBBKTTTTTT",
 "TTTTKBTBBKTTTTTT",
 "TTTTRKTTTKRTTTTT",
 "TTTTTTTTTTTTTTTT",
@@ -155,32 +153,30 @@ const HARRY_F2 = [
 function buildHarry(p){ return spriteFromPattern({K:P.K,W:P.W,Y:P.Y,G:P.G,B:P.B,R:P.R,T:P.T}, p); }
 SPRITES.player = [ buildHarry(HARRY_F1), buildHarry(HARRY_F2) ];
 
-/* GORILA — 16×16, 2 frames (piscar)
-   Mais “flat”, com peito amarelo simples e braços largos, para combinar visualmente.
-*/
+/* GORILA — 16×16, 2 frames (piscar), castanho */
 const KONG_OPEN = [
 "TTTTTTKKKKTTTTTT",
-"TTTTTKBBBBKKTTTT",
-"TTTTKBBBBBBKTTTT",
-"TTTKBBBWWBBBKTTT", // olhos brancos
-"TTKBBBBYYBBBBKTT",
-"TTKBBBYYYYBBBKTT",
-"TTKBBBBYYYYBBKTT",
-"TTKBBBBYYYYBBKTT",
-"TTKBBBBYYYYBBKTT",
-"TTKBBBBBBBBBBKTT",
-"TTTKBBBBBBBBKTTT",
-"TTTTKBBBBBBKTTTT",
-"TTTTKBBBBBBKTTTT",
-"TTTTKBBKKBBKTTTT",
-"TTTTKBTTTTBKTTTT",
+"TTTTTKCCCCKKTTTT",
+"TTTTKCCCCCCKTTTT",
+"TTTKCCCWWCCCKTTT", // olhos brancos
+"TTKCCCCYYCCCCKTT",
+"TTKCCCYYYYCCCKTT",
+"TTKCCCCYYYYCCKTT",
+"TTKCCCCYYYYCCKTT",
+"TTKCCCCYYYYCCKTT",
+"TTKCCCCCCCCCCKTT",
+"TTTKCCCCCCCCKTTT",
+"TTTTKCCCCCCKTTTT",
+"TTTTKCCCCCCKTTTT",
+"TTTTKCCKKCCKTTTT",
+"TTTTKCTTTTCKTTTT",
 "TTTTTTKKKKTTTTTT",
 ];
 const KONG_BLINK = KONG_OPEN.map((row,y)=> y===3 ? row.replace(/W/g,"Y") : row);
-function buildKong(p){ return spriteFromPattern({K:P.K,B:P.B,Y:P.Y,W:P.W,T:P.T}, p); }
+function buildKong(p){ return spriteFromPattern({K:P.K,C:P.C,Y:P.Y,W:P.W,T:P.T}, p); }
 SPRITES.kong = [ buildKong(KONG_OPEN), buildKong(KONG_BLINK) ];
 
-/* OVO — oval chapado com brilho simples */
+/* OVO — oval chapado com brilho */
 const EGG = [
 "TTTTTTTTTTTTTTTT",
 "TTTTTTTWWWTTTTTT",
@@ -201,7 +197,7 @@ const EGG = [
 ];
 SPRITES.egg = spriteFromPattern({W:P.W,T:P.T}, EGG);
 
-/* BARRIL — simples, com banda vermelha */
+/* BARRIL — com banda vermelha */
 const BARREL = [
 "TTTTTTTTTTTTTTTT",
 "TTTTTTKRRRRKTTTT",
@@ -222,7 +218,7 @@ const BARREL = [
 ];
 SPRITES.barrel = spriteFromPattern({K:P.K,R:P.R,B:P.B,T:P.T}, BARREL);
 
-/* ESCADA — degraus de 2 px como no Spectrum */
+/* ESCADA — degraus de 2 px */
 const LADDER = Array.from({length:16},(_,y)=>{
   const arr = "TTTTTTTTTTTTTTTT".split("");
   arr[5]="Y"; arr[10]="Y";
